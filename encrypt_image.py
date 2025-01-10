@@ -128,9 +128,6 @@ def encrypt_image_v3(image:Image.Image, psw):
     return image
 
 def dencrypt_image_v3(image:Image.Image, psw):
-    '''
-    return: pixel_array
-    '''
     width = image.width
     height = image.height
     x_arr = np.arange(width)
