@@ -105,6 +105,50 @@ def dencrypt_image_v2(image:Image.Image, psw):
     image.paste(Image.fromarray(pixel_array))
     return image
 
+def encrypt_image_v3(image:Image.Image, psw):
+    width = image.width
+    height = image.height
+    x_arr = np.arange(width)
+    shuffle_arr_v2(x_arr,psw) 
+    y_arr = np.arange(height)
+    shuffle_arr_v2(y_arr,get_sha256(psw))
+    pixel_array = np.array(image)
+    
+    _pixel_array = pixel_array.copy()
+    for x in range(height): 
+        pixel_array[x] = _pixel_array[y_arr[x]]
+    pixel_array = np.transpose(pixel_array, axes=(1, 0, 2))
+    
+    _pixel_array = pixel_array.copy()
+    for x in range(width): 
+        pixel_array[x] = _pixel_array[x_arr[x]]
+    pixel_array = np.transpose(pixel_array, axes=(1, 0, 2))
+
+    image.paste(Image.fromarray(pixel_array))
+    return image
+
+def dencrypt_image_v3(image:Image.Image, psw):
+    width = image.width
+    height = image.height
+    x_arr = np.arange(width)
+    shuffle_arr_v2(x_arr,psw)
+    y_arr = np.arange(height)
+    shuffle_arr_v2(y_arr,get_sha256(psw))
+    pixel_array = np.array(image)
+    
+    _pixel_array = pixel_array.copy()
+    for x in range(height): 
+        pixel_array[y_arr[x]] = _pixel_array[x]
+    pixel_array = np.transpose(pixel_array, axes=(1, 0, 2))
+    
+    _pixel_array = pixel_array.copy()
+    for x in range(width): 
+        pixel_array[x_arr[x]] = _pixel_array[x]
+    pixel_array = np.transpose(pixel_array, axes=(1, 0, 2))
+
+    image.paste(Image.fromarray(pixel_array))
+    return image
+
 _password = '123qwe'
 
 if PILImage.Image.__name__ != 'EncryptedImage':
@@ -149,22 +193,22 @@ if PILImage.Image.__name__ != 'EncryptedImage':
                 super().save(fp, format = format, **params)
                 return
             
-            if 'Encrypt' in self.info and (self.info['Encrypt'] == 'pixel_shuffle' or self.info['Encrypt'] == 'pixel_shuffle_2'):
+            if 'Encrypt' in self.info and (self.info['Encrypt'] == 'pixel_shuffle' or self.info['Encrypt'] == 'pixel_shuffle_2' or self.info['Encrypt'] == 'pixel_shuffle_3'):
                 super().save(fp, format = format, **params)
                 return
             
-            encrypt_image_v2(self, get_sha256(_password))
+            encrypt_image_v3(self, get_sha256(_password))
             self.format = PngImagePlugin.PngImageFile.format
             if self.info:
-                self.info['Encrypt'] = 'pixel_shuffle_2'
+                self.info['Encrypt'] = 'pixel_shuffle_3'
             pnginfo = params.get('pnginfo', PngImagePlugin.PngInfo())
             if not pnginfo:
                 pnginfo = PngImagePlugin.PngInfo()
-            pnginfo.add_text('Encrypt', 'pixel_shuffle_2')
+            pnginfo.add_text('Encrypt', 'pixel_shuffle_3')
             params.update(pnginfo=pnginfo)
             super().save(fp, format=self.format, **params)
             # 保存到文件后解密内存内的图片，让直接在内存内使用时图片正常
-            dencrypt_image_v2(self, get_sha256(_password)) 
+            dencrypt_image_v3(self, get_sha256(_password)) 
             if self.info:
                 self.info['Encrypt'] = None
             
@@ -179,6 +223,11 @@ if PILImage.Image.__name__ != 'EncryptedImage':
                 return image
             if 'Encrypt' in pnginfo and pnginfo["Encrypt"] == 'pixel_shuffle_2':
                 dencrypt_image_v2(image, get_sha256(_password))
+                pnginfo["Encrypt"] = None
+                image = EncryptedImage.from_image(image=image)
+                return image
+            if 'Encrypt' in pnginfo and pnginfo["Encrypt"] == 'pixel_shuffle_3':
+                dencrypt_image_v3(image, get_sha256(_password))
                 pnginfo["Encrypt"] = None
                 image = EncryptedImage.from_image(image=image)
                 return image
