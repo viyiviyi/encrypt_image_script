@@ -27,6 +27,16 @@ def shuffle_arr(arr,key):
         arr[i],arr[to_index] = arr[to_index],arr[i]
     return arr
 
+def shuffle_arr_v2(arr,key):
+    sha_key = get_sha256(key)
+    arr_len = len(arr)
+    s_idx = arr_len
+    for i in range(arr_len):
+        s_idx = arr_len - i - 1
+        to_index = int(get_range(sha_key,i,range_len=8),16) % (arr_len -i)
+        arr[s_idx],arr[to_index] = arr[to_index],arr[s_idx]
+    return arr
+
 def encrypt_image(image:Image.Image, psw):
     width = image.width
     height = image.height
